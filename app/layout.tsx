@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkProvider, SignedOut, SignInButton } from "@clerk/nextjs";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/Sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,11 +31,20 @@ export default function RootLayout({
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY} dynamic>
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${geistMono.variable} antialiased`}
         >
-          <Providers>
-            {children}
-          </Providers>
+          <SidebarProvider>
+            <AppSidebar />
+            <Providers>
+              <SidebarTrigger />
+              <SignedOut>
+                <SignInButton>
+                  Sign me in
+                </SignInButton>
+              </SignedOut>
+              {children}
+            </Providers>
+          </SidebarProvider>
         </body>
       </html>
     </ClerkProvider>

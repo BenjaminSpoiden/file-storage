@@ -1,25 +1,20 @@
-'use client'
-import { Button } from "@/components/ui/Button";
-import { api } from "@/convex/_generated/api";
-import { SignOutButton } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
+import { Card } from "@/components/Card";
+import { UploadFile } from "@/components/UploadFileButton";
 
 export default function Home() {
-  const onCreatefile = useMutation(api.files.onCreateFile)
+ 
   return (
-    <div className="">
-      <SignOutButton>
-        <Button>
-          Sign out
-        </Button>
-      </SignOutButton>
-      <Button onClick={() => {
-        onCreatefile({
-          name: 'test'
-        })
-      }}>
-        Test file
-      </Button>
+    <div className="container mx-auto p-8">
+      <div className="flex justify-between items-center">
+        <h1 className="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl">
+          Your Files
+        </h1>
+        <UploadFile />
+      </div>
+      
+      <div className="mt-4">
+        <Card />
+      </div>
     </div>
   );
 }
