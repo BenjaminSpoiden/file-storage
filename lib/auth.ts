@@ -1,3 +1,4 @@
+'use server'
 import { api } from "@/convex/_generated/api";
 import { auth } from "@clerk/nextjs/server";
 import { fetchQuery } from "convex/nextjs";

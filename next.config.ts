@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         hostname: 'img.clerk.com'
+      },
+      {
+        hostname: 'small-moose-949.convex.cloud'
       }
     ]
   }

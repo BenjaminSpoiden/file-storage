@@ -33,7 +33,8 @@ export async function onUploadFile(uploadFileType: UploadFileType) {
         name: uploadFileType.name,
         orgId,
         type: uploadFileType.type,
-        tokenIdentifier
+        tokenIdentifier,
+        size: uploadFileType.file.size
     })
 
     revalidatePath('/')

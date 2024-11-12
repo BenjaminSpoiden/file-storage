@@ -2,7 +2,6 @@
 
 import { useUser } from "@clerk/nextjs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/DropdownMenu";
-import { SidebarMenuButton } from "./ui/Sidebar";
 import { ChevronUp } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import { useRouter } from "next/navigation";
@@ -21,13 +20,13 @@ export const UserButton = () => {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <SidebarMenuButton>
-                    <Avatar className="w-6 h-6">
+                <div>
+                <Avatar className="w-6 h-6">
                         <AvatarImage src={user.imageUrl} />
                         <AvatarFallback>{user.firstName}</AvatarFallback>
                     </Avatar>
                     <ChevronUp className="ml-auto" />
-                </SidebarMenuButton>
+                </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 side="top"

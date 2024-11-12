@@ -41,7 +41,8 @@ export const onCreateFile = mutation(
         name: string,
         fileId: Id<"_storage">,
         type: MimeType,
-        tokenIdentifier: string
+        tokenIdentifier: string,
+        size: number
     }) => {
         try {
             const hasAccess = await onHasAccess(ctx, args.orgId, args.tokenIdentifier)
@@ -51,7 +52,8 @@ export const onCreateFile = mutation(
                 orgId: args.orgId,
                 fileId: args.fileId,
                 type: args.type,
-                userId: hasAccess.user._id
+                userId: hasAccess.user._id,
+                size: args.size
             })
         } catch (error: any) {
             throw new ConvexError(error.message)
@@ -73,7 +75,7 @@ export const onGetFiles = query({
         const hasAccess = await onHasAccess(ctx, args.orgId, args.token)
 
         if(!hasAccess) {
-            return []
+            return null
         }
         let files = await ctx.db.query('files').withIndex('byOrgId', (q) => q.eq('orgId', args.orgId)).collect()
         

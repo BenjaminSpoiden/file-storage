@@ -115,7 +115,7 @@ export const UploadFile: React.FC = () => {
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Upload Files</Button>
+        <Button variant="outline" className='text-black'>Upload Files</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
