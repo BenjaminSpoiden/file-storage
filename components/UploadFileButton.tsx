@@ -2,59 +2,67 @@
 
 import React, { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Accept, useDropzone } from 'react-dropzone'
-import { X, Upload, Pencil, Check, AlertCircle } from 'lucide-react'
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog"
+import { useDropzone } from 'react-dropzone'
+import { X, Upload, Pencil, Check, AlertCircle, Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { cn } from '@/lib/utils'
-import { useMutation } from 'convex/react'
-import { api } from '@/convex/_generated/api'
-import { Id } from '@/convex/_generated/dataModel'
+import { onUploadFile } from '@/lib/onUploadFile'
+import { FileWithPreview } from '@/convex/files'
 
-interface FileWithPreview extends File {
-  preview: string;
+
+const acceptedMimeTypes = {
+  'image/jpeg': [],
+  'image/png': [],
+  'text/csv': ['.csv'],
+  'application/pdf': ['.pdf'],
+  'audio/mpeg': ['.mp3'],
+  'audio/wav': ['.wav'],
 }
 
-const acceptedMessages: Accept = {
-    'image/*': [],
-    'text/csv': ['.csv'],
-    'application/pdf': ['.pdf'],
-    'audio/mpeg': ['.mp3'],
-    'audio/wav': ['.wav'],
-}
+type MimeType = keyof typeof acceptedMimeTypes
 
 export const UploadFile: React.FC = () => {
   const [files, setFiles] = useState<FileWithPreview[]>([])
+  const [progress, setProgress] = useState<number[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [newFileName, setNewFileName] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  const onGenerateUploadUrl = useMutation(api.files.onGenerateUploadUrl)
-  const onUploadImage = useMutation(api.files.onCreateFile)
 
   const onUpload = async (files: FileWithPreview[]) => {
-    const postUrl = await onGenerateUploadUrl()
-    files.forEach(async (file) => {
-        const result = await fetch(postUrl, {
-            method: 'POST',
-            headers: { "Content-Type": file!.type },
-            body: file
-        })
+    setIsUploading(true)
+    setProgress(new Array(files.length).fill(0))
 
-        const { storageId } = await result.json() as { storageId: Id<"_storage"> };
+    try {
+      await Promise.all(
+        files.map(async (file, index) => {
 
-        await onUploadImage({ 
-            fileId: storageId, 
+          await onUploadFile({ 
+            file,
             name: file.name, 
-            type: 'image', 
-            orgId: ''
-        });
-    })
-    
+            type: file.type as MimeType,
+          });
+
+          setProgress((prevProgress) => {
+            const updatedProgress = [...prevProgress];
+            updatedProgress[index] = 100;
+            return updatedProgress;
+          });
+        })
+      )
+      setIsUploading(false)
+      setIsDialogOpen(false)
+      setFiles([])
+    } catch (error) {
+      setErrorMessage('Upload failed. Please try again.')
+      setIsUploading(false)
+    }
   }
 
- 
   const onDrop = (acceptedFiles: File[]) => {
     setFiles(acceptedFiles.map(file => Object.assign(file, {
       preview: URL.createObjectURL(file)
@@ -63,15 +71,16 @@ export const UploadFile: React.FC = () => {
   }
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({ 
-        onDrop, 
-        accept: acceptedMessages,
-        onDropRejected: () => {
-            setErrorMessage("Some files were rejected. Please only upload images, CSV, PDF, MP3, or WAV files.")
-        }
-    })
+    onDrop, 
+    accept: acceptedMimeTypes,
+    onDropRejected: () => {
+      setErrorMessage("Some files were rejected. Please only upload images, CSV, PDF, MP3, or WAV files.")
+    }
+  })
 
   const removeFile = (index: number) => {
     setFiles(files => files.filter((_, i) => i !== index))
+    setProgress(progress => progress.filter((_, i) => i !== index))
   }
 
   const startEditing = (index: number) => {
@@ -104,7 +113,7 @@ export const UploadFile: React.FC = () => {
   )
 
   return (
-    <Dialog>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">Upload Files</Button>
       </DialogTrigger>
@@ -178,6 +187,12 @@ export const UploadFile: React.FC = () => {
                       <p className="text-xs text-gray-500">
                         {(file.size / 1024 / 1024).toFixed(2)} MB • {new Date(file.lastModified).toLocaleDateString()}
                       </p>
+                      <motion.div
+                        className="h-1 mt-1 bg-blue-400 rounded"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress[index] || 0}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
                     </div>
                     <div className="flex items-center">
                       {editingIndex === index ? (
@@ -196,10 +211,17 @@ export const UploadFile: React.FC = () => {
                   </motion.div>
                 ))}
                 <div className='flex items-center justify-between mt-8'>
-                    <Button onClick={() => setFiles([])} variant="destructive">Clear All</Button>
-                    <DialogClose asChild>
-                        <Button onClick={() => onUpload(files)} >Upload File</Button>
-                    </DialogClose>
+                  <Button onClick={() => setFiles([])} variant="destructive">Clear All</Button>
+                  <Button onClick={() => onUpload(files)} disabled={isUploading}>
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      'Upload Files'
+                    )}
+                  </Button>
                 </div>
               </motion.div>
             )}

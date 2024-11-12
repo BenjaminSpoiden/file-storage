@@ -19,13 +19,15 @@ export const onCreateUser = internalMutation({
         tokenIdentifier: v.string(),
         name: v.string(),
         image: v.string(),
+        clerkId: v.string()
     },
     handler: async (ctx, args) => {
         await ctx.db.insert('users', {
-            tokenIdentifier: args.tokenIdentifier,
-            name: args.name,
-            image: args.image, 
-            orgIds: []
+          clerkId: args.clerkId,
+          tokenIdentifier: args.tokenIdentifier,
+          name: args.name,
+          image: args.image, 
+          orgIds: [],
         })
     }
 })
@@ -89,12 +91,12 @@ export const onUpdateRoleInOrgForUser = internalMutation({
 })
 
 export const onGetUserProfie = query({
-    args: { userId: v.id("users") },
+    args: { userId: v.string() },
     async handler(ctx, args) {
-      const user = await ctx.db.get(args.userId);
-  
+      const user = await ctx.db.query('users').withIndex('byClerkId', (q) => q.eq('clerkId', args.userId)).first();
       return {
         name: user?.name,
+        tokenIdentifier: user?.tokenIdentifier,
         image: user?.image,
       };
     },

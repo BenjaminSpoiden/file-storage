@@ -8,47 +8,57 @@ export const onGenerateUploadUrl = mutation(async (ctx) => {
     return await ctx.storage.generateUploadUrl();
 });
 
-export const onHasAccess = async (ctx: QueryCtx | MutationCtx, orgId: string) => {
-    const identity = await ctx.auth.getUserIdentity()
+export interface FileWithPreview extends File {
+    preview: string;
+}
 
-    if(!identity) {
-        return null
-    }
-
-    const user = await getUser(ctx, identity.tokenIdentifier)
-
+export const onHasAccess = async (ctx: QueryCtx | MutationCtx, orgId: string, authToken: string) => {
+   
+    const user = await getUser(ctx, authToken)
     const hasAcces = 
         user.orgIds.some((item) => item.orgId === orgId) ||
-        user.tokenIdentifier === identity.tokenIdentifier
+        user.tokenIdentifier === authToken
 
-    if(!hasAcces) return null;
+    if(!hasAcces) throw new ConvexError('No access to this organization.');
 
     return { user }
 }
 
-export const onCreateFile = mutation({
-    args: {
-        name: v.string(),
-        orgId: v.string(),
-        fileId: v.id('_storage'),
-        type: FILE_TYPES
-    },
-    handler: async (ctx, args) => {
-        const hasAccess = await onHasAccess(ctx, args.orgId)
+export const acceptedMimeTypes = {
+    'image/jpeg': [],
+    'image/png': [],
+    'text/csv': ['.csv'],
+    'application/pdf': ['.pdf'],
+    'audio/mpeg': ['.mp3'],
+    'audio/wav': ['.wav'],
+}
+  
+export type MimeType = keyof typeof acceptedMimeTypes
 
-        if(!hasAccess) {
-            throw new ConvexError('No Access to this org.')
+export const onCreateFile = mutation(
+    async (ctx, args: {
+        orgId: string,
+        name: string,
+        fileId: Id<"_storage">,
+        type: MimeType,
+        tokenIdentifier: string
+    }) => {
+        try {
+            const hasAccess = await onHasAccess(ctx, args.orgId, args.tokenIdentifier)
+            
+            return await ctx.db.insert('files', {
+                name: args.name,
+                orgId: args.orgId,
+                fileId: args.fileId,
+                type: args.type,
+                userId: hasAccess.user._id
+            })
+        } catch (error: any) {
+            throw new ConvexError(error.message)
         }
-
-        return await ctx.db.insert('files', {
-            name: args.name,
-            orgId: args.orgId,
-            fileId: args.fileId,
-            type: args.type,
-            userId: hasAccess.user._id
-        })
+       
     }
-})
+)
 
 export const onGetFiles = query({
     args: {
@@ -57,16 +67,16 @@ export const onGetFiles = query({
         favorites: v.optional(v.boolean()),
         deletedOnly: v.optional(v.boolean()),
         type: v.optional(FILE_TYPES),
+        token: v.string()
     },
     handler: async (ctx, args) => {
-        const hasAccess = await onHasAccess(ctx, args.orgId)
+        const hasAccess = await onHasAccess(ctx, args.orgId, args.token)
 
         if(!hasAccess) {
             return []
         }
-
         let files = await ctx.db.query('files').withIndex('byOrgId', (q) => q.eq('orgId', args.orgId)).collect()
-
+        
         const query = args.query
 
         if (query) {
@@ -204,7 +214,7 @@ export const onGetAllFavorites = query({
         orgId: v.string()
     },
     handler: async (ctx, args) => {
-        const hasAcces = await onHasAccess(ctx, args.orgId)
+        const hasAcces = await onHasAccess(ctx, args.orgId, '')
 
         if(!hasAcces) return []
 
@@ -235,7 +245,7 @@ async function hasAccessToFile(
       return null;
     }
   
-    const hasAccess = await onHasAccess(ctx, file.orgId);
+    const hasAccess = await onHasAccess(ctx, file.orgId, '');
   
     if (!hasAccess) {
       return null;

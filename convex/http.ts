@@ -25,10 +25,9 @@ http.route({
                 case "user.created":
                   await ctx.runMutation(internal.users.onCreateUser, {
                     tokenIdentifier: `${process.env.CLERK_HOSTNAME}|${result.data.id}`,
-                    name: `${result.data.first_name ?? ""} ${
-                      result.data.last_name ?? ""
-                    }`,
+                    name: `${result.data.first_name ?? ""} ${result.data.last_name ?? ""}`,
                     image: result.data.image_url,
+                    clerkId: result.data.id
                   });
                   break;
                 case "user.updated":
@@ -48,7 +47,6 @@ http.route({
                   });
                   break;
                 case "organizationMembership.updated":
-                  console.log(result.data.role);
                   await ctx.runMutation(internal.users.onUpdateRoleInOrgForUser, {
                     tokenIdentifier: `${process.env.CLERK_HOSTNAME}|${result.data.public_user_data.user_id}`,
                     orgId: result.data.organization.id,

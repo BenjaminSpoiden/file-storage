@@ -4,11 +4,12 @@ import { v } from "convex/values";
 export const ROLES = v.union(v.literal("admin"), v.literal("member"));
 
 export const FILE_TYPES = v.union(
-  v.literal("image"),
-  v.literal("csv"),
-  v.literal("pdf"),
-  v.literal('mp3'),
-  v.literal('wav')
+  v.literal("image/png"),
+  v.literal("image/jpeg"),
+  v.literal("text/csv"),
+  v.literal("application/pdf"),
+  v.literal('audio/mpeg'),
+  v.literal('audio/wav')
 );
 
 export default defineSchema({
@@ -32,6 +33,7 @@ export default defineSchema({
       role: ROLES
     })),
     name: v.string(),
-    image: v.string()
-  }).index('byTokenIdentifier', ['tokenIdentifier'])
+    image: v.string(),
+    clerkId: v.string()
+  }).index('byTokenIdentifier', ['tokenIdentifier']).index('byClerkId', ['clerkId'])
 }); 
